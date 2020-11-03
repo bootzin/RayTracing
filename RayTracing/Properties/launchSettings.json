@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RayTracing": {
+      "commandName": "Project",
+      "commandLineArgs": "test1.in out.ppm 256 256"
+    }
+  }
+}
