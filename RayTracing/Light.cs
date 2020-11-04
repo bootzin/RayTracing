@@ -7,7 +7,7 @@ namespace RayTracing
 {
     public sealed class Light
     {
-        public Vector3? Position { get; }
+        public Vector3 Position { get; }
         public Vector3 Color { get; }
         public float ConstantCoeff { get; }
         public float LinearCoeff { get; }
@@ -18,6 +18,8 @@ namespace RayTracing
         {
             if (!ambientLight)
                 Position = pos;
+            else
+                Position = Vector3.Zero;
 
             Color = color;
             ConstantCoeff = coeffs.X;

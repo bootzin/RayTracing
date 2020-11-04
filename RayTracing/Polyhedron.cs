@@ -8,5 +8,10 @@ namespace RayTracing
         public Polyhedron(Pigment pigment, Finishing finishing, int faceCount)
         {
         }
-    }
+
+		public override bool Hit(Ray ray, float tMin, float tMax, out RayHit hit)
+		{
+			throw new System.NotImplementedException();
+		}
+	}
 }

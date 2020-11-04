@@ -36,5 +36,10 @@ namespace RayTracing
             Horizontal = 2 * halfWidth * focusDist * U;
             Vertical = 2 * halfHeight * focusDist * V;
         }
-    }
+
+		public Ray GetRay(float u, float v)
+		{
+			return new Ray(Eye, LowerLeftCorner + (u * Horizontal) + (v * Vertical) - Eye);
+        }
+	}
 }

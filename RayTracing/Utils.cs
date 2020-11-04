@@ -1,14 +1,20 @@
 ﻿using OpenTK;
 using System;
 using System.IO;
+using System.Threading;
 
 namespace RayTracing
 {
     public static class Utils
     {
-        public static void WriteColor(this StreamWriter sw, Vector3 color)
+        public const float Infinity = float.MaxValue;
+
+        public static Random Rand => ThreadLocalRandom.Instance;
+
+        public static void WriteColor(this StreamWriter sw, Vector3 color, int samplesPerPixel)
         {
-            sw.WriteLine($"{(int)(color.X * 255)} {(int)(color.Y * 255)} {(int)(color.Z * 255)}");
+            color = Vector3.Clamp(color / samplesPerPixel, Vector3.Zero, Vector3.One * .999f);
+            sw.WriteLine($"{(int)(MathF.Sqrt(color.X) * 256)} {(int)(MathF.Sqrt(color.Y) * 256)} {(int)(MathF.Sqrt(color.Z) * 256)}");
         }
 
         public static float Deg2Rad(float angle)
@@ -33,14 +39,85 @@ namespace RayTracing
                 float.Parse(array[3]));
         }
 
-        internal static Vector3 RayColor(Ray r)
+        public static Vector3 RandomInUnitSphere()
         {
-            var t = .5f * (r.Dir.Normalized().Y + 1f);
-            var sphere = new Sphere(null, null, new Vector3(0, 0, -1), .5f);
-            bool hit = sphere.Hit(r, 0, 100, out RayHit rayHit);
-            if (hit && rayHit.T > 0)
-                return .5f * (rayHit.Normal + Vector3.One);
-            return ((1 - t) * Vector3.One) + (t * new Vector3(.5f, .7f, 1f));
+            Vector3 ret;
+            do
+            {
+                ret = (2f * new Vector3((float)Rand.NextDouble(), (float)Rand.NextDouble(), (float)Rand.NextDouble())) - Vector3.One;
+            } while (ret.LengthSquared >= 1f);
+            return ret;
+        }
+
+        public static Vector3 RandomInHemisphere(Vector3 normal)
+        {
+            Vector3 inUnitSphere = RandomInUnitSphere();
+            return Vector3.Dot(inUnitSphere, normal) > 0 ? inUnitSphere : -inUnitSphere;
+        }
+
+        public static class ThreadLocalRandom
+        {
+            /// <summary>
+            /// Random number generator used to generate seeds,
+            /// which are then used to create new random number
+            /// generators on a per-thread basis.
+            /// </summary>
+            private static readonly Random globalRandom = new Random();
+            private static readonly object globalLock = new object();
+
+            /// <summary>
+            /// Random number generator
+            /// </summary>
+            private static readonly ThreadLocal<Random> threadRandom = new ThreadLocal<Random>(NewRandom);
+
+            /// <summary>
+            /// Creates a new instance of Random. The seed is derived
+            /// from a global (static) instance of Random, rather
+            /// than time.
+            /// </summary>
+            public static Random NewRandom()
+            {
+                lock (globalLock)
+                {
+                    return new Random(globalRandom.Next());
+                }
+            }
+
+            /// <summary>
+            /// Returns an instance of Random which can be used freely
+            /// within the current thread.
+            /// </summary>
+            public static Random Instance { get { return threadRandom.Value; } }
+
+            /// <summary>See <see cref="Random.Next()" /></summary>
+            public static int Next()
+            {
+                return Instance.Next();
+            }
+
+            /// <summary>See <see cref="Random.Next(int)" /></summary>
+            public static int Next(int maxValue)
+            {
+                return Instance.Next(maxValue);
+            }
+
+            /// <summary>See <see cref="Random.Next(int, int)" /></summary>
+            public static int Next(int minValue, int maxValue)
+            {
+                return Instance.Next(minValue, maxValue);
+            }
+
+            /// <summary>See <see cref="Random.NextDouble()" /></summary>
+            public static double NextDouble()
+            {
+                return Instance.NextDouble();
+            }
+
+            /// <summary>See <see cref="Random.NextBytes(byte[])" /></summary>
+            public static void NextBytes(byte[] buffer)
+            {
+                Instance.NextBytes(buffer);
+            }
         }
     }
 }

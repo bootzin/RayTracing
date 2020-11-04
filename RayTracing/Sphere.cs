@@ -7,8 +7,6 @@ namespace RayTracing
     {
         public Vector3 Center { get; }
         public float Radius { get; }
-        public Pigment Pigment { get; }
-        public Finishing Finishing { get; }
 
         public Sphere(Pigment pigment, Finishing finishing, Vector3 center, float radius)
         {
@@ -18,7 +16,7 @@ namespace RayTracing
             Finishing = finishing;
         }
 
-        public bool Hit(Ray ray, float tMin, float tMax, out RayHit hit)
+        public override bool Hit(Ray ray, float tMin, float tMax, out RayHit hit)
         {
             var oc = ray.Origin - Center;
             var a = ray.Dir.LengthSquared;
@@ -38,7 +36,8 @@ namespace RayTracing
             {
                 Vector3 position = ray.PointAt(root);
                 Vector3 normal = (position - Center) / Radius;
-                hit = new RayHit(ray.PointAt(root), normal, root);
+                hit = new RayHit(position, root, this);
+                hit.SetNormal(ray, normal);
                 return true;
             }
             root = (-halfB + tmp) / a;
@@ -46,7 +45,8 @@ namespace RayTracing
             {
                 Vector3 position = ray.PointAt(root);
                 Vector3 normal = (position - Center) / Radius;
-                hit = new RayHit(position, normal, root);
+                hit = new RayHit(position, root, this);
+                hit.SetNormal(ray, normal);
                 return true;
             }
 
