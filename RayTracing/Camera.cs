@@ -16,7 +16,7 @@ namespace RayTracing
         public Vector3 Horizontal { get; }
         public Vector3 Vertical { get; }
 
-        public Camera(Vector3 eye, Vector3 target, Vector3 up, float vFov, float aspectRatio, float aperture)
+        public Camera(Vector3 eye, Vector3 target, Vector3 up, float vFov, float aspectRatio, float aperture, float focusDist)
         {
             Eye = eye;
             Target = target;
@@ -31,7 +31,6 @@ namespace RayTracing
             U = Vector3.Cross(up, W).Normalized();
             V = Vector3.Cross(W, U);
 
-            var focusDist = (eye - target).Length;
             LowerLeftCorner = Eye - (halfWidth * focusDist * U) - (halfHeight * focusDist * V) - (focusDist * W);
             Horizontal = 2 * halfWidth * focusDist * U;
             Vertical = 2 * halfHeight * focusDist * V;

@@ -2,7 +2,7 @@
   "profiles": {
     "RayTracing": {
       "commandName": "Project",
-      "commandLineArgs": "test1.in out.ppm 512 512"
+      "commandLineArgs": "test4.in out.ppm "
     }
   }
 }

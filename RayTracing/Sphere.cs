@@ -24,28 +24,28 @@ namespace RayTracing
             var c = oc.LengthSquared - (Radius * Radius);
 
             float discriminant = (halfB * halfB) - (a * c);
-            if (discriminant < 0)
+            if (discriminant < Utils.Epsilon)
             {
                 hit = new RayHit();
                 return false;
             }
 
             float tmp = MathF.Sqrt(discriminant);
-            float root = (-halfB - tmp) / a;
-            if (root < tMax && root > tMin)
+            float t = (-halfB - tmp) / a;
+            if (t < tMax && t > tMin)
             {
-                Vector3 position = ray.PointAt(root);
+                Vector3 position = ray.PointAt(t);
                 Vector3 normal = (position - Center) / Radius;
-                hit = new RayHit(position, root, this);
+                hit = new RayHit(position, t, this);
                 hit.SetNormal(ray, normal);
                 return true;
             }
-            root = (-halfB + tmp) / a;
-            if (root < tMax && root > tMin)
+            t = (-halfB + tmp) / a;
+            if (t < tMax && t > tMin)
             {
-                Vector3 position = ray.PointAt(root);
+                Vector3 position = ray.PointAt(t);
                 Vector3 normal = (position - Center) / Radius;
-                hit = new RayHit(position, root, this);
+                hit = new RayHit(position, t, this);
                 hit.SetNormal(ray, normal);
                 return true;
             }

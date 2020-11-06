@@ -14,7 +14,7 @@ namespace RayTracing
         {
             Position = new Vector3();
             Normal = new Vector3();
-            T = 0;
+            T = -1;
         }
 
         public RayHit(Vector3 pos, Vector3 normal, float t)
@@ -29,6 +29,14 @@ namespace RayTracing
             Position = pos;
             ObjHit = objHit;
             T = t;
+        }
+
+        public RayHit(Vector3 pos, float t, EngineObject objHit, Vector3 normal)
+        {
+            Position = pos;
+            ObjHit = objHit;
+            T = t;
+            Normal = normal;
         }
 
         public void SetNormal(Ray r, Vector3 outNormal)

@@ -10,8 +10,8 @@ namespace RayTracing
 {
     public sealed class Engine : GameWindow
     {
-        private const int samplesPerPixel = 100;
-        private const int maxDepth = 50;
+        private const int samplesPerPixel = 50;
+        private const int maxDepth = 5;
 
         private readonly string outputFilePath;
         private readonly List<Light> SceneLights = new List<Light>();
@@ -34,7 +34,7 @@ namespace RayTracing
         private void Init(string inputFilePath)
         {
             ReadFile(inputFilePath);
-            //EngineObjects.Add(new Sphere(null, null, new Vector3(0, -1000.5f, -100), 1000));
+            //EngineObjects.Add(new Sphere(Pigments[1], Finishings[2], new Vector3(0, -1000.5f, -100), 1000));
             SaveFile();
         }
 
@@ -44,10 +44,10 @@ namespace RayTracing
             sw.WriteLine("P3");
             sw.WriteLine($"{Width} {Height}");
             sw.WriteLine("255");
-
-            Parallel.For(0, Height - 1, (k) =>
+            int scannedPixels = 0;
+            Parallel.For(0, Height, (k) =>
             {
-                int j = Height - 1 - k;
+                int j = Height - k;
                 for (int i = 0; i < Width; i++)
                 {
                     Vector3 color = Vector3.Zero;
@@ -59,7 +59,9 @@ namespace RayTracing
                         Ray r = Camera.GetRay(u, v);
                         color += r.RayColor(EngineObjects, SceneLights, maxDepth);
                     }
-
+                    //System.Threading.Interlocked.Increment(ref scannedPixels);
+                    //var tmp = MathF.Round((float)scannedPixels / ColorBuffer.Length * 100);
+                    //Console.WriteLine(tmp.ToString().Replace(',','.') + " %");
                     ColorBuffer[(k * Width) + i] = color;
                 }
             });
@@ -79,13 +81,16 @@ namespace RayTracing
             string[] cameraUpStr = sr.ReadLine().Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string cameraFov = sr.ReadLine().Trim();
 
+            var eye = cameraPosStr.ToVector3();
+            var target = cameraTargetStr.ToVector3();
             Camera = new Camera(
-                cameraPosStr.ToVector3(),
-                cameraTargetStr.ToVector3(),
+                eye,
+                target,
                 cameraUpStr.ToVector3(),
                 float.Parse(cameraFov, NumberStyles.Float, CultureInfo.InvariantCulture),
-                Width / Height,
-                .01f);
+                (float)Width / Height,
+                .01f,
+                (eye - target).Length);
 
             int lightCount = int.Parse(sr.ReadLine().Trim());
             for (int i = 0; i < lightCount; i++)
@@ -105,7 +110,7 @@ namespace RayTracing
             int pigmentCount = int.Parse(sr.ReadLine().Trim());
             for (int i = 0; i < pigmentCount; i++)
             {
-                string[] pigmentInfo = sr.ReadLine().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                string[] pigmentInfo = sr.ReadLine().Replace('\t',' ').Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 switch (pigmentInfo[0])
                 {
                     case "solid":
@@ -116,7 +121,7 @@ namespace RayTracing
                             new string[] { pigmentInfo[4], pigmentInfo[5], pigmentInfo[6] }.ToVector3(),
                             float.Parse(pigmentInfo[7], NumberStyles.Float, CultureInfo.InvariantCulture)));
                         break;
-                    case "textmap":
+                    case "texmap":
                         string fileName = pigmentInfo[1];
                         Vector4 p0 = sr.ReadLine().Split(' ', StringSplitOptions.RemoveEmptyEntries).ToVector4();
                         Vector4 p1 = sr.ReadLine().Split(' ', StringSplitOptions.RemoveEmptyEntries).ToVector4();
@@ -154,10 +159,10 @@ namespace RayTracing
                         break;
                     case "polyhedron":
                         int faceCount = int.Parse(objInfo[3]);
-                        var poly = new Polyhedron(Pigments[pIndex], Finishings[fIndex], faceCount);
+                        var poly = new Polyhedron(Pigments[pIndex], Finishings[fIndex]);
                         for (int j = 0; j < faceCount; j++)
                         {
-                            string[] faceInfo = sr.ReadLine().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                            string[] faceInfo = sr.ReadLine().Replace('\t', ' ').Split(' ', StringSplitOptions.RemoveEmptyEntries);
                             float a = float.Parse(faceInfo[0], NumberStyles.Float, CultureInfo.InvariantCulture);
                             float b = float.Parse(faceInfo[1], NumberStyles.Float, CultureInfo.InvariantCulture);
                             float c = float.Parse(faceInfo[2], NumberStyles.Float, CultureInfo.InvariantCulture);

@@ -1,5 +1,6 @@
 ﻿using OpenTK;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 
@@ -8,13 +9,17 @@ namespace RayTracing
     public static class Utils
     {
         public const float Infinity = float.MaxValue;
+        public const float Epsilon = 1e-4f;
 
         public static Random Rand => ThreadLocalRandom.Instance;
 
-        public static void WriteColor(this StreamWriter sw, Vector3 color, int samplesPerPixel)
+		public static bool GammaCorrection { get; set; }
+
+		public static void WriteColor(this StreamWriter sw, Vector3 color, int samplesPerPixel)
         {
+            float gamma = GammaCorrection ? 2.2f : 1f;
             color = Vector3.Clamp(color / samplesPerPixel, Vector3.Zero, Vector3.One * .999f);
-            sw.WriteLine($"{(int)(MathF.Sqrt(color.X) * 256)} {(int)(MathF.Sqrt(color.Y) * 256)} {(int)(MathF.Sqrt(color.Z) * 256)}");
+            sw.WriteLine($"{(int)(MathF.Pow(color.X, 1 / gamma) * 256)} {(int)(MathF.Pow(color.Y, 1 / gamma) * 256)} {(int)(MathF.Pow(color.Z, 1 / gamma) * 256)}");
         }
 
         public static float Deg2Rad(float angle)
@@ -25,18 +30,18 @@ namespace RayTracing
         public static Vector3 ToVector3(this string[] array)
         {
             return new Vector3(
-                float.Parse(array[0]),
-                float.Parse(array[1]),
-                float.Parse(array[2]));
+                float.Parse(array[0], NumberStyles.Float, CultureInfo.InvariantCulture),
+                float.Parse(array[1], NumberStyles.Float, CultureInfo.InvariantCulture),
+                float.Parse(array[2], NumberStyles.Float, CultureInfo.InvariantCulture));
         }
 
         public static Vector4 ToVector4(this string[] array)
         {
             return new Vector4(
-                float.Parse(array[0]),
-                float.Parse(array[1]),
-                float.Parse(array[2]),
-                float.Parse(array[3]));
+                float.Parse(array[0], NumberStyles.Float, CultureInfo.InvariantCulture),
+                float.Parse(array[1], NumberStyles.Float, CultureInfo.InvariantCulture),
+                float.Parse(array[2], NumberStyles.Float, CultureInfo.InvariantCulture),
+                float.Parse(array[3], NumberStyles.Float, CultureInfo.InvariantCulture));
         }
 
         public static Vector3 RandomInUnitSphere()
