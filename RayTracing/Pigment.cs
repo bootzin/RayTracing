@@ -56,8 +56,8 @@ namespace RayTracing
 					return val == 0 ? color : color2;
 
 				case PigmentType.Texture:
-					var s = Vector4.Dot(P0, new Vector4(pC));
-					var r = Vector4.Dot(P1, new Vector4(pC));
+					var s = Vector4.Dot(P0, new Vector4(pC, 1f));
+					var r = Vector4.Dot(P1, new Vector4(pC, 1f));
 					int i = (int)(r * TexHeight) % TexHeight;
 					int j = (int)(s * TexWidth) % TexWidth;
 					if (i < 0) i += TexHeight;

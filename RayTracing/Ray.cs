@@ -20,7 +20,7 @@ namespace RayTracing
 
 		public Vector3 RayColor(List<EngineObject> objList, List<Light> lightList, int depth)
 		{
-			if (depth < 0)
+			if (depth <= 0)
 				return Vector3.Zero;
 
 			if (HitAnything(objList, out RayHit rayHit))
@@ -88,14 +88,14 @@ namespace RayTracing
 
 			Vector3 reflected = Reflect(hit.Normal);
 			Ray scattered = new Ray(hit.Position, reflected);
-			if (Vector3.Dot(scattered.Dir, hit.Normal) > 0)
+			if (Vector3.Dot(scattered.Dir, hit.Normal) > Utils.Epsilon)
 				return scattered.RayColor(objList, lightList, depth - 1) * hit.ObjHit.Finishing.Kr;
 			return Vector3.Zero;
 		}
 
 		private Vector3 Refraction(RayHit hit, List<Light> lightList, List<EngineObject> objList, int depth)
 		{
-			if (depth <= 0 || hit.ObjHit.Finishing.Kt == 0)
+			if (depth < 0 || hit.ObjHit.Finishing.Kt == 0)
 				return Vector3.Zero;
 			float refr = hit.FrontFace ? 1f / hit.ObjHit.Finishing.Ior : hit.ObjHit.Finishing.Ior;
 
@@ -119,8 +119,8 @@ namespace RayTracing
 
 		private Vector3 Reflect(Vector3 n)
 		{
-			var v = Dir.Normalized();
-			return v - (2 * Vector3.Dot(v, n) * n);
+			var v = Dir;
+			return (v - (2 * Vector3.Dot(v, n) * n)).Normalized();
 		}
 
 		private bool HitAnything(List<EngineObject> objList, out RayHit hit)
