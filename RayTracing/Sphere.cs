@@ -46,7 +46,7 @@ namespace RayTracing
                 Vector3 position = ray.PointAt(t);
                 Vector3 normal = (position - Center) / Radius;
                 hit = new RayHit(position, t, this);
-                hit.SetNormal(ray, -normal);
+                hit.SetNormal(ray, normal);
                 return true;
             }
 

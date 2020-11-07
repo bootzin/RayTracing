@@ -11,7 +11,7 @@ namespace RayTracing
     public sealed class Engine : GameWindow
     {
         private const int samplesPerPixel = 1;
-        private const int maxDepth = 2;
+        private const int maxDepth = 5;
 
         private readonly string outputFilePath;
         private readonly List<Light> SceneLights = new List<Light>();
