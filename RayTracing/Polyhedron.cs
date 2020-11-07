@@ -15,22 +15,75 @@ namespace RayTracing
 
 		public override bool Hit(Ray ray, float tMin, float tMax, out RayHit hit)
 		{
-			hit = new RayHit();
-			for (int i = 0; i < Faces.Count; i++)
+			//hit = new RayHit();
+			//for (int i = 0; i < Faces.Count; i++)
+			//{
+			//	float denom = Vector3.Dot(ray.Dir, Faces[i].Normal);
+			//	if (denom < -Utils.Epsilon) // denom can't be 0
+			//	{
+			//		float t = (Vector3.Dot(Faces[i].PointInPlane - ray.Origin, Faces[i].OriginalNormal)) / denom;
+			//		if (t > tMin && t < tMax)
+			//		{
+			//			hit = new RayHit(ray.PointAt(t), t, this);
+			//			hit.SetNormal(ray, Faces[i].Normal.Normalized());
+			//			return true;
+			//		}
+			//	}
+			//}
+			//return false;
+
+			float tt, t0 = Utils.Epsilon, t1 = Utils.Infinity;
+			Vector3 nt0, nt1;
+			nt0 = nt1 = Vector3.Zero;
+			foreach (var face in Faces)
 			{
-				float denom = Vector3.Dot(ray.Dir, Faces[i].Normal);
-				if (denom < -Utils.Epsilon) // denom can't be 0
+				Vector3 p0 = ray.Origin;
+				Vector3 n = face.OriginalNormal;
+				float dn = Vector3.Dot(ray.Dir, n);
+				float val = Vector3.Dot(p0, n) + face.D;
+
+				if (dn <= Utils.Epsilon && dn >= -Utils.Epsilon && val > Utils.Epsilon)
 				{
-					float t = (Vector3.Dot(Faces[i].PointInPlane - ray.Origin, Faces[i].OriginalNormal)) / denom;
-					if (t > tMin && t < tMax)
+					t1 = -1.0f;
+				}
+				if (dn > Utils.Epsilon)
+				{
+					tt = -val / dn;
+					if (tt < t1)
 					{
-						hit = new RayHit(ray.PointAt(t), t, this);
-						hit.SetNormal(ray, Faces[i].Normal.Normalized());
-						return true;
+						// Replace the furthest point.
+						t1 = tt;
+						nt1 = n;
+					}
+				}
+				if (dn < -Utils.Epsilon)
+				{
+					tt = -val / dn;
+					if (tt > t0)
+					{
+						t0 = tt;
+						nt0 = n;
 					}
 				}
 			}
-            return false;
+
+			if (t1 < t0)
+			{
+				hit = new RayHit(ray.PointAt(-1), -1, null);
+				return false;
+			}
+			if (MathF.Abs(t0) <= Utils.Epsilon && (t1 >= t0) && t1 < Utils.Infinity)
+			{
+				hit = new RayHit(ray.PointAt(t1), t1, this, -(nt1).Normalized());
+				return t1 < tMax;
+			}
+			if (t0 > Utils.Epsilon && t1 >= t0)
+			{
+				hit = new RayHit(ray.PointAt(t0), t0, this, (nt0).Normalized());
+				return t0 < tMax;
+			}
+			hit = new RayHit();
+			return false;
 		}
 	}
 }

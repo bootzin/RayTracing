@@ -133,13 +133,6 @@ namespace RayTracing
 			{
 				if (objList[i].Hit(this, Utils.Epsilon, closest, out RayHit tempHit))
 				{
-					if (hit.ObjHit is Sphere && tempHit.ObjHit is Polyhedron)
-					{
-						if (hit.T - tempHit.T > 1f)
-						{
-
-						}
-					}
 					hitAnything = true;
 					hit = tempHit;
 					closest = tempHit.T;
