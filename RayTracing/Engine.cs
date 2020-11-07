@@ -10,8 +10,8 @@ namespace RayTracing
 {
     public sealed class Engine : GameWindow
     {
-        private const int samplesPerPixel = 50;
-        private const int maxDepth = 5;
+        private const int samplesPerPixel = 1;
+        private const int maxDepth = 2;
 
         private readonly string outputFilePath;
         private readonly List<Light> SceneLights = new List<Light>();
@@ -34,18 +34,13 @@ namespace RayTracing
         private void Init(string inputFilePath)
         {
             ReadFile(inputFilePath);
-            //EngineObjects.Add(new Sphere(Pigments[1], Finishings[2], new Vector3(0, -1000.5f, -100), 1000));
             SaveFile();
         }
 
         private void SaveFile()
         {
-            using StreamWriter sw = new StreamWriter(outputFilePath);
-            sw.WriteLine("P3");
-            sw.WriteLine($"{Width} {Height}");
-            sw.WriteLine("255");
             int scannedPixels = 0;
-            Parallel.For(0, Height, (k) =>
+            Parallel.For(0, Height, new ParallelOptions() { MaxDegreeOfParallelism = 1 } ,(k) =>
             {
                 int j = Height - k;
                 for (int i = 0; i < Width; i++)
@@ -59,13 +54,16 @@ namespace RayTracing
                         Ray r = Camera.GetRay(u, v);
                         color += r.RayColor(EngineObjects, SceneLights, maxDepth);
                     }
-                    //System.Threading.Interlocked.Increment(ref scannedPixels);
-                    //var tmp = MathF.Round((float)scannedPixels / ColorBuffer.Length * 100);
-                    //Console.WriteLine(tmp.ToString().Replace(',','.') + " %");
-                    ColorBuffer[(k * Width) + i] = color;
+					//System.Threading.Interlocked.Increment(ref scannedPixels);
+					//var tmp = MathF.Round((float)scannedPixels / ColorBuffer.Length * 100);
+					//Console.WriteLine(tmp.ToString().Replace(',', '.') + " %");
+					ColorBuffer[(k * Width) + i] = color;
                 }
             });
-
+            using StreamWriter sw = new StreamWriter(outputFilePath);
+            sw.WriteLine("P3");
+            sw.WriteLine($"{Width} {Height}");
+            sw.WriteLine("255");
             for (int i = 0; i < ColorBuffer.Length; i++)
                 sw.WriteColor(ColorBuffer[i], samplesPerPixel);
             sw.Flush();

@@ -20,10 +20,10 @@ namespace RayTracing
         {
             var oc = ray.Origin - Center;
             var a = ray.Dir.LengthSquared;
-            var halfB = Vector3.Dot(oc, ray.Dir);
+            var halfB = 2*Vector3.Dot(oc, ray.Dir);
             var c = oc.LengthSquared - (Radius * Radius);
 
-            float discriminant = (halfB * halfB) - (a * c);
+            float discriminant = (halfB * halfB) - (4 *(a * c));
             if (discriminant < Utils.Epsilon)
             {
                 hit = new RayHit();
@@ -31,8 +31,8 @@ namespace RayTracing
             }
 
             float tmp = MathF.Sqrt(discriminant);
-            float t = (-halfB - tmp) / a;
-            if (t < tMax && t > tMin)
+            float t = (-halfB - tmp) / (2 * a);
+            if (t > tMin && t < tMax)
             {
                 Vector3 position = ray.PointAt(t);
                 Vector3 normal = (position - Center) / Radius;
@@ -40,13 +40,13 @@ namespace RayTracing
                 hit.SetNormal(ray, normal);
                 return true;
             }
-            t = (-halfB + tmp) / a;
-            if (t < tMax && t > tMin)
+            t = (-halfB + tmp) / (2 * a);
+            if (t > tMin && t < tMax)
             {
                 Vector3 position = ray.PointAt(t);
                 Vector3 normal = (position - Center) / Radius;
                 hit = new RayHit(position, t, this);
-                hit.SetNormal(ray, normal);
+                hit.SetNormal(ray, -normal);
                 return true;
             }
 

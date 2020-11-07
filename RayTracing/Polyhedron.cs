@@ -15,21 +15,21 @@ namespace RayTracing
 
 		public override bool Hit(Ray ray, float tMin, float tMax, out RayHit hit)
 		{
-            foreach(var face in Faces)
-            {
-				float denom = Vector3.Dot(ray.Dir, face.Normal);
-				if (MathF.Abs(denom) > Utils.Epsilon)
+			hit = new RayHit();
+			for (int i = 0; i < Faces.Count; i++)
+			{
+				float denom = Vector3.Dot(ray.Dir, Faces[i].Normal);
+				if (denom < -Utils.Epsilon) // denom can't be 0
 				{
-					float t = (Vector3.Dot(face.PointInPlane - ray.Origin, face.Normal)) / denom;
+					float t = (Vector3.Dot(Faces[i].PointInPlane - ray.Origin, Faces[i].OriginalNormal)) / denom;
 					if (t > tMin && t < tMax)
 					{
 						hit = new RayHit(ray.PointAt(t), t, this);
-						hit.SetNormal(ray, face.Normal.Normalized());
+						hit.SetNormal(ray, Faces[i].Normal.Normalized());
 						return true;
 					}
 				}
 			}
-            hit = new RayHit();
             return false;
 		}
 	}

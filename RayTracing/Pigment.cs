@@ -42,7 +42,7 @@ namespace RayTracing
 		public Vector4 P0 { get; }
 		public Vector4 P1 { get; }
 
-		public Vector3 ColorAt(Vector3 point)
+		public Vector3 ColorAt(Vector3 pC)
 		{
 			switch (Type)
 			{
@@ -50,21 +50,19 @@ namespace RayTracing
 					return color;
 
 				case PigmentType.Checker:
-					float val = (MathF.Floor(point.X / cubeSide)
-							+ MathF.Floor(point.Y / cubeSide)
-							+ MathF.Floor(point.Z / cubeSide)) % 2;
+					float val = (MathF.Floor(pC.X / cubeSide)
+							+ MathF.Floor(pC.Y / cubeSide)
+							+ MathF.Floor(pC.Z / cubeSide)) % 2;
 					return val == 0 ? color : color2;
 
 				case PigmentType.Texture:
-					var aux0 = (P0.Xyz + point);
-					float s = (aux0.X + aux0.Y + aux0.Z + P0.W);
-					var aux1 = (P1.Xyz + point);
-					float t = (aux1.X + aux1.Y + aux1.Z + P1.W);
-					int i = (int)(t * TexHeight) % TexHeight;
+					var s = Vector4.Dot(P0, new Vector4(pC));
+					var r = Vector4.Dot(P1, new Vector4(pC));
+					int i = (int)(r * TexHeight) % TexHeight;
 					int j = (int)(s * TexWidth) % TexWidth;
 					if (i < 0) i += TexHeight;
 					if (j < 0) j += TexWidth;
-					return TextureData[(j * TexWidth) + i];
+					return TextureData[(i * TexWidth) + j];
 				default:
 					return color;
 			}

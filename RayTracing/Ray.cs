@@ -1,127 +1,152 @@
 ﻿using OpenTK;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RayTracing
 {
-    public class Ray
-    {
-        public Vector3 Dir { get; }
-        public Vector3 Origin { get; }
+	public class Ray
+	{
+		public Vector3 Dir { get; }
+		public Vector3 Origin { get; }
 
-        public Ray(Vector3 point, Vector3 dir)
-        {
-            Dir = dir;
-            Origin = point;
-        }
-
-        public Vector3 PointAt(float t) => Origin + (t * Dir);
-
-        public Vector3 RayColor(List<EngineObject> objList, List<Light> lightList, int depth)
-        {
-            if (depth < 0)
-                return Vector3.Zero;
-
-            if (HitAnything(objList, out RayHit rayHit))
-			{
-                if (Scatter(rayHit, lightList, objList, out Vector3 attenuation, out Ray scattered))
-                    return attenuation;// * scattered.RayColor(objList, lightList, depth - 1);
-                return Vector3.Zero;
-			}
-
-            var t = .5f * (Dir.Normalized().Y + 1f);
-            return lightList[0].Color;// ((1 - t) * Vector3.One) + (t * new Vector3(.5f, .7f, 1f));
-        }
-
-		private bool Scatter(RayHit hit, List<Light> lightList, List<EngineObject> objList, out Vector3 attenuation, out Ray scattered)
+		public Ray(Vector3 point, Vector3 dir)
 		{
-            if (hit.ObjHit.Finishing.Kr < -10)
-			{
-                Vector3 reflected = Reflect(hit.Normal);
-                scattered = new Ray(hit.Position, reflected);
-                bool scatter = Vector3.Dot(scattered.Dir, hit.Normal) > 0;
-                attenuation = Vector3.Zero;
-                if (scatter)
-                {
-                    Vector3 ambient = hit.ObjHit.Finishing.Ka * lightList[0].Color * hit.ObjHit.Pigment.ColorAt(hit.Position);
-                    for (int i = 1; i < lightList.Count; i++)
-                    {
-                        ambient += GetLightContribution(hit, lightList[i], objList);
-                    }
-                    attenuation = ambient * hit.ObjHit.Finishing.Kr;
-                }
-                return scatter;
-            }
-            else
-			{
-                Vector3 target = hit.Position + Utils.RandomInHemisphere(hit.Normal);
-                scattered = new Ray(hit.Position, target - hit.Position);
-                Vector3 ambient = hit.ObjHit.Finishing.Ka * lightList[0].Color * hit.ObjHit.Pigment.ColorAt(hit.Position);
-                for (int i = 1; i < lightList.Count; i++)
-				{
-                    ambient += GetLightContribution(hit, lightList[i], objList);
-				}
-				attenuation = ambient;
-                return true;
-            }
+			Dir = dir;
+			Origin = point;
 		}
 
-        private Vector3 GetLightContribution(RayHit hit, Light light, List<EngineObject> objList)
-		{
-            var obj = hit.ObjHit;
+		public Vector3 PointAt(float t) => Origin + (t * Dir);
 
-            Vector3 diffuse, specular;
-            diffuse = specular = Vector3.Zero;
+		public Vector3 RayColor(List<EngineObject> objList, List<Light> lightList, int depth)
+		{
+			if (depth < 0)
+				return Vector3.Zero;
+
+			if (HitAnything(objList, out RayHit rayHit))
+			{
+				if (Scatter(rayHit, lightList, objList, out Vector3 attenuation, depth))
+					return attenuation;
+				return Vector3.Zero;
+			}
+
+			var t = .5f * (Dir.Normalized().Y + 1f);
+			return lightList[0].Color;// ((1 - t) * Vector3.One) + (t * new Vector3(.5f, .7f, 1f));
+		}
+
+		private bool Scatter(RayHit hit, List<Light> lightList, List<EngineObject> objList, out Vector3 attenuation, int depth)
+		{
+			Ray scattered;
+			Vector3 target = hit.Normal + Utils.RandomInUnitSphere();
+			scattered = new Ray(hit.Position, target);
+			Vector3 color = hit.ObjHit.Finishing.Ka * lightList[0].Color * hit.ObjHit.Pigment.ColorAt(hit.Position);
+			for (int i = 1; i < lightList.Count; i++)
+			{
+				//var scatter = scattered.RayColor(objList, lightList, depth - 1);
+				color += GetLightContribution(hit, lightList[i], objList, Vector3.One);
+			}
+			color += Reflection(hit, lightList, objList, depth);
+			color += Refraction(hit, lightList, objList, depth);
+			attenuation = Vector3.Clamp(color, Vector3.Zero, Vector3.One);
+			return true;
+		}
+
+		private Vector3 GetLightContribution(RayHit hit, Light light, List<EngineObject> objList, Vector3 scatter)
+		{
+			var obj = hit.ObjHit;
+
+			Vector3 diffuse, specular;
+			diffuse = specular = Vector3.Zero;
 
 			Vector3 L = light.Position - hit.Position;
-            Ray lightRay = new Ray(hit.Position, L);
-            if (light.Position != Vector3.Zero
-                && (!lightRay.HitAnything(objList, out RayHit tmpHit)
-                || L.LengthFast < (tmpHit.Position - hit.Position).LengthFast))
-            {
-                float distance = L.Length;
+			Ray lightRay = new Ray(hit.Position, L);
+			if (light.Position != Vector3.Zero
+				&& (!lightRay.HitAnything(objList, out RayHit tmpHit)
+				|| L.LengthFast < (tmpHit.Position - hit.Position).LengthFast))
+			{
+				float distance = L.Length;
 				float attentuation = 1 / (light.ConstantCoeff + (light.LinearCoeff * distance) + (light.SquareCoeff * (distance * distance)));
 
 				Vector3 lightDir = L.Normalized();
-                float diff = MathF.Max(Vector3.Dot(lightDir, hit.Normal), 0f);
-                diffuse = diff * light.Color * obj.Finishing.Kd * attentuation;
+				float diff = MathF.Max(Vector3.Dot(lightDir, hit.Normal), 0f);
+				diffuse = diff * light.Color * obj.Finishing.Kd * attentuation;
+				if (scatter != Vector3.Zero)
+					diffuse *= scatter;
 
-                Vector3 reflected = Reflect(lightDir, hit.Normal);
-                float spec = MathF.Pow(MathF.Max(Vector3.Dot(reflected, (Engine.Camera.Eye - hit.Position).Normalized()), 0f), obj.Finishing.Alpha);
-                specular = obj.Finishing.Ks * spec * light.Color * attentuation;
+				Vector3 reflected = Reflect(lightDir, hit.Normal);
+				float spec = MathF.Pow(MathF.Max(Vector3.Dot(reflected, (Engine.Camera.Eye - hit.Position).Normalized()), 0f), obj.Finishing.Alpha);
+				specular = obj.Finishing.Ks * spec * light.Color * attentuation;
 			}
 
-            return Vector3.Clamp((diffuse * hit.ObjHit.Pigment.ColorAt(hit.Position)) + specular, Vector3.Zero, Vector3.One);
+			return (diffuse * hit.ObjHit.Pigment.ColorAt(hit.Position) + specular);
+		}
+
+		private Vector3 Reflection(RayHit hit, List<Light> lightList, List<EngineObject> objList, int depth)
+		{
+			if (depth <= 0 || hit.ObjHit.Finishing.Kr == 0)
+				return Vector3.Zero;
+
+			Vector3 reflected = Reflect(hit.Normal);
+			Ray scattered = new Ray(hit.Position, reflected);
+			if (Vector3.Dot(scattered.Dir, hit.Normal) > 0)
+				return scattered.RayColor(objList, lightList, depth - 1) * hit.ObjHit.Finishing.Kr;
+			return Vector3.Zero;
+		}
+
+		private Vector3 Refraction(RayHit hit, List<Light> lightList, List<EngineObject> objList, int depth)
+		{
+			if (depth <= 0 || hit.ObjHit.Finishing.Kt == 0)
+				return Vector3.Zero;
+			float refr = hit.FrontFace ? 1f / hit.ObjHit.Finishing.Ior : hit.ObjHit.Finishing.Ior;
+
+			var scattered = Refract(hit, refr);
+			return scattered.RayColor(objList, lightList, depth - 1) * hit.ObjHit.Finishing.Kt;
+		}
+
+		private Ray Refract(RayHit hit, float refractivity)
+		{
+			var uv = Dir.Normalized();
+			float cosTheta = MathF.Min(Vector3.Dot(-uv, hit.Normal), 1);
+			Vector3 rOutPerp = refractivity * (uv + (cosTheta * hit.Normal));
+			Vector3 rOutParallel = -MathF.Sqrt(MathF.Abs(1 - rOutPerp.LengthSquared)) * hit.Normal;
+			return new Ray(hit.Position, rOutPerp + rOutParallel);
 		}
 
 		private Vector3 Reflect(Vector3 l, Vector3 n)
 		{
-            return (2 * Vector3.Dot(l, n) * n) - l;
-        }
+			return (2 * Vector3.Dot(l, n) * n) - l;
+		}
 
 		private Vector3 Reflect(Vector3 n)
 		{
-            var v = Dir.Normalized();
-            return v - (2 * Vector3.Dot(v, n) * n);
+			var v = Dir.Normalized();
+			return v - (2 * Vector3.Dot(v, n) * n);
 		}
 
 		private bool HitAnything(List<EngineObject> objList, out RayHit hit)
 		{
-            hit = new RayHit();
-            bool hitAnything = false;
-            float closest = Utils.Infinity;
+			hit = new RayHit();
+			bool hitAnything = false;
+			float closest = Utils.Infinity;
 
-            for (int i = 0; i < objList.Count; i++)
-            {
-                if (objList[i].Hit(this, Utils.Epsilon, closest, out RayHit tempHit))
-                {
-                    hitAnything = true;
-                    hit = tempHit;
-                    closest = hit.T;
-                }
-            }
+			for (int i = 0; i < objList.Count ; i++)
+			{
+				if (objList[i].Hit(this, Utils.Epsilon, closest, out RayHit tempHit))
+				{
+					if (hit.ObjHit is Sphere && tempHit.ObjHit is Polyhedron)
+					{
+						if (hit.T - tempHit.T > 1f)
+						{
 
-            return hitAnything;
-        }
+						}
+					}
+					hitAnything = true;
+					hit = tempHit;
+					closest = tempHit.T;
+				}
+			}
+
+			return hitAnything;
+		}
 	}
 }
