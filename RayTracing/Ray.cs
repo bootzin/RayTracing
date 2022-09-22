@@ -1,7 +1,6 @@
 ﻿using OpenTK;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace RayTracing
 {
@@ -30,20 +29,15 @@ namespace RayTracing
 				return Vector3.Zero;
 			}
 
-			var t = .5f * (Dir.Normalized().Y + 1f);
-			return lightList[0].Color;// ((1 - t) * Vector3.One) + (t * new Vector3(.5f, .7f, 1f));
+			return lightList[0].Color;
 		}
 
 		private bool Scatter(RayHit hit, List<Light> lightList, List<EngineObject> objList, out Vector3 attenuation, int depth)
 		{
-			Ray scattered;
-			Vector3 target = hit.Normal + Utils.RandomInUnitSphere();
-			scattered = new Ray(hit.Position, target);
 			Vector3 color = hit.ObjHit.Finishing.Ka * lightList[0].Color * hit.ObjHit.Pigment.ColorAt(hit.Position);
 			for (int i = 1; i < lightList.Count; i++)
 			{
-				//var scatter = scattered.RayColor(objList, lightList, depth - 1);
-				color += GetLightContribution(hit, lightList[i], objList, Vector3.One);
+				color += GetLightContribution(hit, lightList[i], objList);
 			}
 			color += Reflection(hit, lightList, objList, depth);
 			color += Refraction(hit, lightList, objList, depth);
@@ -51,7 +45,7 @@ namespace RayTracing
 			return true;
 		}
 
-		private Vector3 GetLightContribution(RayHit hit, Light light, List<EngineObject> objList, Vector3 scatter)
+		private Vector3 GetLightContribution(RayHit hit, Light light, List<EngineObject> objList)
 		{
 			var obj = hit.ObjHit;
 
@@ -70,15 +64,13 @@ namespace RayTracing
 				Vector3 lightDir = L.Normalized();
 				float diff = MathF.Max(Vector3.Dot(lightDir, hit.Normal), 0f);
 				diffuse = diff * light.Color * obj.Finishing.Kd * attentuation;
-				if (scatter != Vector3.Zero)
-					diffuse *= scatter;
 
 				Vector3 reflected = Reflect(lightDir, hit.Normal);
 				float spec = MathF.Pow(MathF.Max(Vector3.Dot(reflected, (Engine.Camera.Eye - hit.Position).Normalized()), 0f), obj.Finishing.Alpha);
 				specular = obj.Finishing.Ks * spec * light.Color * attentuation;
 			}
 
-			return (diffuse * hit.ObjHit.Pigment.ColorAt(hit.Position) + specular);
+			return (diffuse * hit.ObjHit.Pigment.ColorAt(hit.Position)) + specular;
 		}
 
 		private Vector3 Reflection(RayHit hit, List<Light> lightList, List<EngineObject> objList, int depth)
@@ -119,8 +111,8 @@ namespace RayTracing
 
 		private Vector3 Reflect(Vector3 n)
 		{
-			var v = Dir;
-			return (v - (2 * Vector3.Dot(v, n) * n)).Normalized();
+			var v = Dir.Normalized();
+			return v - (2 * Vector3.Dot(v, n) * n);
 		}
 
 		private bool HitAnything(List<EngineObject> objList, out RayHit hit)

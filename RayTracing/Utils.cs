@@ -44,7 +44,9 @@ namespace RayTracing
                 float.Parse(array[3], NumberStyles.Float, CultureInfo.InvariantCulture));
         }
 
-        public static Vector3 RandomInUnitSphere()
+		public static bool NearZero(this Vector3 vec) => MathF.Abs(vec.X) < Epsilon && MathF.Abs(vec.Y) < Epsilon && MathF.Abs(vec.Y) < Epsilon;
+
+		public static Vector3 RandomInUnitSphere()
         {
             Vector3 ret;
             do

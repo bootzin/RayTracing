@@ -1,11 +1,8 @@
 ﻿using OpenTK;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace RayTracing
 {
-    public sealed class Light
+	public sealed class Light
     {
         public Vector3 Position { get; }
         public Vector3 Color { get; }

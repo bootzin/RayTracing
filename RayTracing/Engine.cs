@@ -10,9 +10,8 @@ namespace RayTracing
 {
     public sealed class Engine : GameWindow
     {
-        private const int samplesPerPixel = 1;
-        private const int maxDepth = 2;
-
+        private readonly int samplesPerPixel;
+        private readonly int maxDepth;
         private readonly string outputFilePath;
         private readonly List<Light> SceneLights = new List<Light>();
         private readonly List<Pigment> Pigments = new List<Pigment>();
@@ -22,16 +21,18 @@ namespace RayTracing
         public static Camera Camera { get; private set; }
         private Vector3[] ColorBuffer { get; }
 
-        public Engine(int width, int height, string title, string inputFilePath, string outputFilePath) : base(width, height, new GraphicsMode(new ColorFormat(32), 16, 0, 4, new ColorFormat(0), 2, false), title)
+        public Engine(int width, int height, string title, string inputFilePath, string outputFilePath, int samples, int depth) : base(width, height, new GraphicsMode(new ColorFormat(32), 16, 0, 4, new ColorFormat(0), 2, false), title)
         {
             this.outputFilePath = outputFilePath;
+            samplesPerPixel = samples;
+            maxDepth = depth;
 
             ColorBuffer = new Vector3[Width * Height];
 
-            Init(inputFilePath);
+            Run(inputFilePath);
         }
 
-        private void Init(string inputFilePath)
+        private void Run(string inputFilePath)
         {
             ReadFile(inputFilePath);
             SaveFile();
@@ -39,8 +40,9 @@ namespace RayTracing
 
         private void SaveFile()
         {
-            int scannedPixels = 0;
-            Parallel.For(0, Height, new ParallelOptions() { MaxDegreeOfParallelism = 1 } ,(k) =>
+            Console.WriteLine("Beginning Ray Trace");
+            Console.WriteLine($"Samples: {samplesPerPixel}, Depth: {maxDepth}");
+            Parallel.For(0, Height, (k) =>
             {
                 int j = Height - k;
                 for (int i = 0; i < Width; i++)
@@ -54,12 +56,10 @@ namespace RayTracing
                         Ray r = Camera.GetRay(u, v);
                         color += r.RayColor(EngineObjects, SceneLights, maxDepth);
                     }
-					//System.Threading.Interlocked.Increment(ref scannedPixels);
-					//var tmp = MathF.Round((float)scannedPixels / ColorBuffer.Length * 100);
-					//Console.WriteLine(tmp.ToString().Replace(',', '.') + " %");
 					ColorBuffer[(k * Width) + i] = color;
                 }
             });
+            Console.WriteLine("Writing to output file");
             using StreamWriter sw = new StreamWriter(outputFilePath);
             sw.WriteLine("P3");
             sw.WriteLine($"{Width} {Height}");
